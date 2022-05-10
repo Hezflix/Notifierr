@@ -20,13 +20,15 @@ var apiOptions = new ClientOptions
 
 using IHost host = Host.CreateDefaultBuilder()
     .ConfigureServices((_, services) =>
-                       services.AddSingleton(apiOptions)
-                       .AddTransient<IPlexServerClient, PlexServerClient>()
-                       .AddTransient<IPlexAccountClient, PlexAccountClient>()
-                       .AddTransient<IPlexLibraryClient, PlexLibraryClient>()
-                       .AddTransient<IApiService, ApiService>()
-                       .AddTransient<IPlexFactory, PlexFactory>()
-                       .AddTransient<IPlexRequestsHttpClient, PlexRequestsHttpClient>())
+    {
+        services.AddSingleton(apiOptions)
+            .AddTransient<IPlexServerClient, PlexServerClient>()
+            .AddTransient<IPlexAccountClient, PlexAccountClient>()
+            .AddTransient<IPlexLibraryClient, PlexLibraryClient>()
+            .AddTransient<IApiService, ApiService>()
+            .AddTransient<IPlexFactory, PlexFactory>()
+            .AddTransient<IPlexRequestsHttpClient, PlexRequestsHttpClient>();
+    })
     .Build();
 
 host.Run();
