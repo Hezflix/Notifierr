@@ -19,6 +19,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\PlexNotifierr.Core\PlexNotifierr.Core.csproj" />
+    <ProjectReference Include="..\PlexNotifierr.Worker\PlexNotifierr.Worker.csproj" />
   </ItemGroup>
 
 </Project>
