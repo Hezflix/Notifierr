@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using PlexNotifierr.Core.Models;
 
@@ -10,9 +11,10 @@ using PlexNotifierr.Core.Models;
 namespace PlexNotifierr.Core.Migrations
 {
     [DbContext(typeof(PlexNotifierrDbContext))]
-    partial class PlexNotifierrDbContextModelSnapshot : ModelSnapshot
+    [Migration("20220511145135_AddPlexNameToUsers")]
+    partial class AddPlexNameToUsers
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "6.0.4");
@@ -56,7 +58,6 @@ namespace PlexNotifierr.Core.Migrations
             modelBuilder.Entity("PlexNotifierr.Core.Models.User", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("TEXT")
                         .HasColumnName("id");
 

@@ -7,12 +7,15 @@ namespace PlexNotifierr.Core.Models
     public class User
     {
         [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.None)]
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         [Column("id")]
         public Guid Id { get; set; }
 
         [Column("plex_id")]
         public int PlexId { get; set; }
+
+        [Column("plex_name")]
+        public string PlexName { get; set; } = "";
 
         [Column("active")]
         public bool Active { get; set; }
