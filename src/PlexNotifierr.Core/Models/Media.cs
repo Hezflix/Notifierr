@@ -14,20 +14,14 @@ namespace PlexNotifierr.Core.Models
         [Column("title")]
         public string Title { get; set; } = "";
 
-        [Column("media_index")]
-        public int? MediaIndex { get; set; }
+        [Column("summary")]
+        public string Summary { get; set; } = "";
 
-        [Column("media_type")]
-        public MediaType MediaType { get; set; }
+        [Column("thumb")]
+        public string ThumbUrl { get; set; } = "";
 
-        [Column("parent_rating_key")]
-        public int? ParentRatingKey { get; set; }
-
-        [Column("parent_media_index")]
-        public int? ParentMediaIndex { get; set; }
-
-        [Column("grand_parent_rating_key")]
-        public int? GrandParentRatingKey { get; set; }
+        [Column("last_notified")]
+        public DateTime LastNotified { get; set; } = DateTime.MinValue;
 
         public ICollection<UserSubscription> Users { get; set; } = new List<UserSubscription>();
     }

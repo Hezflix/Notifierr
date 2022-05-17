@@ -24,6 +24,16 @@ namespace PlexNotifierr.Worker.Jobs
         {
             var users = await _account.Friends();
             var usersDb = await _dbContext.Users.ToListAsync();
+            var ownerUser = usersDb.FirstOrDefault(u => u.PlexId == 1);
+            if (ownerUser == null)
+            {
+                _ = await _dbContext.Users.AddAsync(new User()
+                {
+                    PlexId = 1,
+                    PlexName = _account.Username,
+                    Active = false,
+                });
+            }
             foreach (var user in users)
             {
                 var userDb = usersDb.Where(u => u.PlexId == user.Id).FirstOrDefault();
