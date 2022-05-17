@@ -56,6 +56,7 @@ builder.Services.Configure<QuartzOptions>(options =>
 });
 
 builder.Services.AddTransient(sp => new GetUsersJob(sp.GetRequiredService<PlexNotifierrDbContext>(), sp.GetRequiredService<IPlexFactory>().GetPlexAccount(configPlex.AccessToken)));
+builder.Services.AddTransient(sp => new GetUsersHistoryJob(sp.GetRequiredService<PlexNotifierrDbContext>(), sp.GetRequiredService<IPlexServerClient>(), configPlex.ServerUrl, configPlex.AccessToken));
 
 builder.Services.AddQuartz(q =>
 {
