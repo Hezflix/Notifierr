@@ -10,6 +10,7 @@ using PlexNotifierr.Api;
 using PlexNotifierr.Core.Models;
 using PlexNotifierr.Worker.Jobs;
 using Quartz;
+using Serilog;
 using System.Reflection;
 using System.Runtime.InteropServices;
 
@@ -18,6 +19,7 @@ var builder = WebApplication.CreateBuilder(args);
 var connectionString = builder.Configuration.GetConnectionString("PlexNotifierr");
 
 // Add services to the container.
+builder.Host.UseSerilog((hostContext, logging) => _ = logging.ReadFrom.Configuration(hostContext.Configuration));
 
 builder.Services.AddControllers();
 builder.Services.AddDbContext<PlexNotifierrDbContext>(options =>
@@ -55,8 +57,8 @@ builder.Services.Configure<QuartzOptions>(options =>
     options.Scheduling.OverWriteExistingData = true;
 });
 
-builder.Services.AddTransient(sp => new GetUsersJob(sp.GetRequiredService<PlexNotifierrDbContext>(), sp.GetRequiredService<IPlexFactory>().GetPlexAccount(configPlex.AccessToken)));
-builder.Services.AddTransient(sp => new GetUsersHistoryJob(sp.GetRequiredService<PlexNotifierrDbContext>(), sp.GetRequiredService<IPlexServerClient>(), configPlex.ServerUrl, configPlex.AccessToken));
+builder.Services.AddTransient(sp => new GetUsersJob(sp.GetRequiredService<PlexNotifierrDbContext>(), sp.GetRequiredService<IPlexFactory>().GetPlexAccount(configPlex.AccessToken), sp.GetRequiredService<ILogger<GetUsersJob>>()));
+builder.Services.AddTransient(sp => new GetUsersHistoryJob(sp.GetRequiredService<PlexNotifierrDbContext>(), sp.GetRequiredService<IPlexServerClient>(), configPlex.ServerUrl, configPlex.AccessToken, sp.GetRequiredService<ILogger<GetUsersHistoryJob>>()));
 
 builder.Services.AddQuartz(q =>
 {
