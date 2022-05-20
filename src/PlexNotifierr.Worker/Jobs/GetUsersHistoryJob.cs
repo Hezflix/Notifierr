@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Plex.ServerApi.Clients.Interfaces;
 using PlexNotifierr.Core.Models;
 using Quartz;
@@ -16,12 +17,15 @@ namespace PlexNotifierr.Worker.Jobs
 
         private readonly string _authToken;
 
-        public GetUsersHistoryJob(PlexNotifierrDbContext dbContext, IPlexServerClient plexServerClient, string url, string authToken)
+        private readonly ILogger _logger;
+
+        public GetUsersHistoryJob(PlexNotifierrDbContext dbContext, IPlexServerClient plexServerClient, string url, string authToken, ILogger logger)
         {
             _dbContext = dbContext;
             _serverClient = plexServerClient;
             _url = url;
             _authToken = authToken;
+            _logger = logger;
         }
 
         public async Task Execute(IJobExecutionContext context)
@@ -36,13 +40,13 @@ namespace PlexNotifierr.Worker.Jobs
                 var isLastPage = false;
                 while (!isLastPage)
                 {
-                    var history = await _serverClient.GetPlayHistory(_authToken, _url, offset, limit, accountId: user.PlexId);
-                    isLastPage = history.Size < limit;
-                    offset += limit;
-                    if (history.HistoryMetadata is null) continue;
-                    foreach (var historyMetadata in history.HistoryMetadata.Where(historyMetadata => historyMetadata?.Type == "episode"))
+                    try
                     {
-                        try
+                        var history = await _serverClient.GetPlayHistory(_authToken, _url, offset, limit, accountId: user.PlexId);
+                        isLastPage = history.Size < limit;
+                        offset += limit;
+                        if (history.HistoryMetadata is null) continue;
+                        foreach (var historyMetadata in history.HistoryMetadata.Where(historyMetadata => historyMetadata?.Type == "episode"))
                         {
                             var grandparentKey = historyMetadata.GrandParentKey;
                             var grandparentRatingKey = grandparentKey?.Split('/').LastOrDefault() ?? string.Empty;
@@ -72,13 +76,13 @@ namespace PlexNotifierr.Worker.Jobs
                                 _dbContext.UserSubscriptions.Add(new UserSubscription() { Media = media, User = user });
                             }
                         }
-                        catch (Exception e)
-                        {
-                            Console.WriteLine(e);
-                        }
+                        user.HistoryPosition += history.Size;
+                        _ = await _dbContext.SaveChangesAsync();
                     }
-                    user.HistoryPosition += history.Size;
-                    _ = await _dbContext.SaveChangesAsync();
+                    catch (Exception e)
+                    {
+                        _logger.LogError(e.Message);
+                    }
                 }
             }
         }
