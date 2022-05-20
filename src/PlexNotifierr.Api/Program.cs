@@ -1,4 +1,3 @@
-
 using Microsoft.EntityFrameworkCore;
 using Plex.Api.Factories;
 using Plex.Library.Factories;
@@ -7,6 +6,7 @@ using Plex.ServerApi.Api;
 using Plex.ServerApi.Clients;
 using Plex.ServerApi.Clients.Interfaces;
 using PlexNotifierr.Api;
+using PlexNotifierr.Core.Messaging;
 using PlexNotifierr.Core.Models;
 using PlexNotifierr.Worker.Jobs;
 using Quartz;
@@ -23,14 +23,18 @@ builder.Host.UseSerilog((hostContext, logging) => _ = logging.ReadFrom.Configura
 
 builder.Services.AddControllers();
 builder.Services.AddDbContext<PlexNotifierrDbContext>(options =>
-                  options.UseSqlite(
-                            connectionString,
-                            x => x.MigrationsAssembly("PlexNotifierr.Core"))
-                   );
+    options.UseSqlite(
+        connectionString,
+        x => x.MigrationsAssembly("PlexNotifierr.Core"))
+);
 
 var assembly = Assembly.GetExecutingAssembly();
-string? version = assembly.GetCustomAttribute<AssemblyVersionAttribute>()?.Version;
-var configFile = new ConfigurationBuilder().AddJsonFile("appsettings.json").Build();
+var version = assembly.GetCustomAttribute<AssemblyVersionAttribute>()?.Version;
+var configFile = new ConfigurationBuilder().AddJsonFile("appsettings.Development.json").Build();
+
+builder.Services.AddOptions<RabbitMqConfig>().Bind(configFile.GetSection("RabbitMQ"));
+builder.Services.AddSingleton<INotificationSender, NotificationSender>();
+
 var configPlex = new PlexConfig();
 configFile.Bind("Plex", configPlex);
 // Create Client Options
@@ -44,12 +48,12 @@ var apiOptions = new ClientOptions
 };
 
 builder.Services.AddSingleton(apiOptions)
-                .AddTransient<IPlexServerClient, PlexServerClient>()
-                .AddTransient<IPlexAccountClient, PlexAccountClient>()
-                .AddTransient<IPlexLibraryClient, PlexLibraryClient>()
-                .AddTransient<IApiService, ApiService>()
-                .AddTransient<IPlexFactory, PlexFactory>()
-                .AddTransient<IPlexRequestsHttpClient, PlexRequestsHttpClient>();
+       .AddTransient<IPlexServerClient, PlexServerClient>()
+       .AddTransient<IPlexAccountClient, PlexAccountClient>()
+       .AddTransient<IPlexLibraryClient, PlexLibraryClient>()
+       .AddTransient<IApiService, ApiService>()
+       .AddTransient<IPlexFactory, PlexFactory>()
+       .AddTransient<IPlexRequestsHttpClient, PlexRequestsHttpClient>();
 
 builder.Services.Configure<QuartzOptions>(options =>
 {
@@ -59,6 +63,7 @@ builder.Services.Configure<QuartzOptions>(options =>
 
 builder.Services.AddTransient(sp => new GetUsersJob(sp.GetRequiredService<PlexNotifierrDbContext>(), sp.GetRequiredService<IPlexFactory>().GetPlexAccount(configPlex.AccessToken), sp.GetRequiredService<ILogger<GetUsersJob>>()));
 builder.Services.AddTransient(sp => new GetUsersHistoryJob(sp.GetRequiredService<PlexNotifierrDbContext>(), sp.GetRequiredService<IPlexServerClient>(), configPlex.ServerUrl, configPlex.AccessToken, sp.GetRequiredService<ILogger<GetUsersHistoryJob>>()));
+builder.Services.AddTransient(sp => new GetRecentlyAddedJob(sp.GetRequiredService<PlexNotifierrDbContext>(), sp.GetRequiredService<IPlexServerClient>(), sp.GetRequiredService<INotificationSender>(), configPlex.ServerUrl, configPlex.AccessToken));
 
 builder.Services.AddQuartz(q =>
 {
@@ -67,22 +72,34 @@ builder.Services.AddQuartz(q =>
 
     q.UseSimpleTypeLoader();
     q.UseInMemoryStore();
-    q.UseDefaultThreadPool(tp =>
-    {
-        tp.MaxConcurrency = 10;
-    });
+    q.UseDefaultThreadPool(tp => { tp.MaxConcurrency = 10; });
 
-    var jobKey = new JobKey("GetUsersJob");
+    // var getUsersJobKey = new JobKey("GetUsersJob");
+    // var getUsersHistoryJobKey = new JobKey("GetUsersHistoryJob");
+    var getRecentlyAddedJobKey = new JobKey("GetRecentlyAddedJob");
 
     // Register the job with the DI container
-    q.AddJob<GetUsersJob>(opts => opts.WithIdentity(jobKey));
+    // q.AddJob<GetUsersJob>(opts => opts.WithIdentity(getUsersJobKey));
+    // q.AddJob<GetUsersHistoryJob>(opts => opts.WithIdentity(getUsersHistoryJobKey));
+    q.AddJob<GetRecentlyAddedJob>(opts => opts.WithIdentity(getRecentlyAddedJobKey));
 
     // Create a trigger for the job
-    q.AddTrigger(opts => opts
-        .ForJob(jobKey) // link to the Job
-        .WithIdentity("GetUsersJob-trigger") // give the trigger a unique name
-        .WithCronSchedule("0/55 * * * * ?")); // run every 55 seconds
+    // q.AddTrigger(opts => opts
+    //                     .ForJob(getUsersJobKey) // link to the Job
+    //                     .WithIdentity("GetUsersJob-trigger")
+    //                     .StartNow()); // give the trigger a unique name
+    //    .WithCronSchedule("* 10 * * * ?")); // run every 55 seconds
 
+    // q.AddTrigger(opts => opts
+    //     .ForJob(getUsersHistoryJobKey) // link to the Job
+    //     .WithIdentity("GetUsersHistoryJob-trigger")
+    //     .StartNow());// give the trigger a unique name
+    //.WithCronSchedule("* 10 * * * ?")); // run every 55 seconds
+
+    q.AddTrigger(opts => opts
+                        .ForJob(getRecentlyAddedJobKey) // link to the Job
+                        .WithIdentity("GetRecentlyAddedJob-trigger")
+                        .StartNow());
 }).AddQuartzHostedService(options => options.WaitForJobsToComplete = true);
 
 builder.Services.AddQuartzHostedService(options =>
