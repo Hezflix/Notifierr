@@ -8,8 +8,8 @@
 
         public string? ClientId { get; set; }
 
-        public string ServerUrl { get; set; }
+        public string ServerUrl { get; set; } = String.Empty;
 
-        public string AccessToken { get; set; }
+        public string AccessToken { get; set; } = String.Empty;
     }
 }

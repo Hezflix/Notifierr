@@ -4,8 +4,6 @@ using Plex.ServerApi.Enums;
 using PlexNotifierr.Core.Messaging;
 using PlexNotifierr.Core.Models;
 using Quartz;
-using RabbitMQ.Client;
-using System.Text;
 
 namespace PlexNotifierr.Worker.Jobs
 {
@@ -34,7 +32,8 @@ namespace PlexNotifierr.Worker.Jobs
             {
                 var recentlyAddedEpisodes = await _serverClient.GetLibraryRecentlyAddedAsync(_authToken, _url, SearchType.Episode, library.Key, 0, 100);
                 if (recentlyAddedEpisodes?.Media is null) continue;
-                foreach (var recentlyAddedShow in recentlyAddedEpisodes.Media.GroupBy(x => x.GrandparentRatingKey).Select(x => new { RatingKey = x.Key, MaxOriginalityAvailableAt = x.MaxBy(x => x.OriginallyAvailableAt).OriginallyAvailableAt }))
+                foreach (var recentlyAddedShow in recentlyAddedEpisodes.Media.GroupBy(x => x.GrandparentRatingKey)
+                         .Select(x => new { RatingKey = x.Key, MaxOriginalityAvailableAt = x.MaxBy(x => x.OriginallyAvailableAt)?.OriginallyAvailableAt }))
                 {
                     if (!DateTime.TryParse(recentlyAddedShow.MaxOriginalityAvailableAt, out var originallyAvailableAt)
                         || !int.TryParse(recentlyAddedShow.RatingKey, out var grandParentRatingKey)) continue;
