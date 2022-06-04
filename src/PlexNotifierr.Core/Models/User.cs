@@ -24,7 +24,7 @@ namespace PlexNotifierr.Core.Models
         public string? DiscordId { get; set; }
 
         [Column("history_position")]
-        public int HistoryPosition { get; set; }
+        public int HistoryPosition { get; set; } = 0;
 
         public ICollection<UserSubscription> Medias { get; set; } = new List<UserSubscription>();
     }
