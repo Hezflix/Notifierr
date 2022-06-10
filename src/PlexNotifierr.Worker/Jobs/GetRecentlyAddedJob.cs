@@ -1,12 +1,15 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Plex.ServerApi.Clients.Interfaces;
 using Plex.ServerApi.Enums;
+using PlexNotifierr.Core.Config;
 using PlexNotifierr.Core.Messaging;
 using PlexNotifierr.Core.Models;
 using Quartz;
 
 namespace PlexNotifierr.Worker.Jobs
 {
+    [DisallowConcurrentExecution]
     public class GetRecentlyAddedJob : IJob
     {
         private readonly PlexNotifierrDbContext _dbContext;
@@ -15,13 +18,13 @@ namespace PlexNotifierr.Worker.Jobs
         private readonly string _url;
         private readonly string _authToken;
 
-        public GetRecentlyAddedJob(PlexNotifierrDbContext dbContext, IPlexServerClient plexServerClient, INotificationSender notificationSender, string url, string authToken)
+        public GetRecentlyAddedJob(PlexNotifierrDbContext dbContext, IPlexServerClient plexServerClient, INotificationSender notificationSender, IOptions<PlexConfig> plexConfig)
         {
             _dbContext = dbContext;
             _serverClient = plexServerClient;
             _notificationSender = notificationSender;
-            _url = url;
-            _authToken = authToken;
+            _url = plexConfig.Value.ServerUrl;
+            _authToken = plexConfig.Value.AccessToken;
         }
 
 
@@ -33,7 +36,7 @@ namespace PlexNotifierr.Worker.Jobs
                 var recentlyAddedEpisodes = await _serverClient.GetLibraryRecentlyAddedAsync(_authToken, _url, SearchType.Episode, library.Key, 0, 100);
                 if (recentlyAddedEpisodes?.Media is null) continue;
                 foreach (var recentlyAddedShow in recentlyAddedEpisodes.Media.GroupBy(x => x.GrandparentRatingKey)
-                         .Select(x => new { RatingKey = x.Key, MaxOriginalityAvailableAt = x.MaxBy(x => x.OriginallyAvailableAt)?.OriginallyAvailableAt }))
+                                                                       .Select(x => new { RatingKey = x.Key, MaxOriginalityAvailableAt = x.MaxBy(x => x.OriginallyAvailableAt)?.OriginallyAvailableAt }))
                 {
                     if (!DateTime.TryParse(recentlyAddedShow.MaxOriginalityAvailableAt, out var originallyAvailableAt)
                         || !int.TryParse(recentlyAddedShow.RatingKey, out var grandParentRatingKey)) continue;

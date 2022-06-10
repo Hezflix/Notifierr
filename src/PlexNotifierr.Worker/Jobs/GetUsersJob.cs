@@ -2,6 +2,9 @@
 using Plex.Library.ApiModels.Accounts;
 using PlexNotifierr.Core.Models;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using Plex.Api.Factories;
+using PlexNotifierr.Core.Config;
 using Quartz;
 
 namespace PlexNotifierr.Worker.Jobs
@@ -18,10 +21,10 @@ namespace PlexNotifierr.Worker.Jobs
 
         private readonly ILogger _logger;
 
-        public GetUsersJob(PlexNotifierrDbContext dbContext, PlexAccount account, ILogger logger)
+        public GetUsersJob(PlexNotifierrDbContext dbContext, IPlexFactory plexFactory, IOptions<PlexConfig> plexConfig, ILogger<GetUsersJob> logger)
         {
             _dbContext = dbContext;
-            _account = account;
+            _account = plexFactory.GetPlexAccount(plexConfig.Value.AccessToken);
             _logger = logger;
         }
 

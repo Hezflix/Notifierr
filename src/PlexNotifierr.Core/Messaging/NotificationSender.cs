@@ -47,6 +47,7 @@ namespace PlexNotifierr.Core.Messaging
                 var messageJson = JsonSerializer.Serialize(new { discordId, media.Title, media.Summary, media.ThumbUrl }, options);
                 var messageBytes = Encoding.UTF8.GetBytes(messageJson);
                 channel.BasicPublish("", "discord", true, props, messageBytes);
+                _logger.LogInformation("Successful sent message to discord for user {0} on show {1}", discordId, media.Title);
                 return true;
             }
             catch (Exception e)
