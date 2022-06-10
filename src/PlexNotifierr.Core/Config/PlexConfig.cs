@@ -1,4 +1,4 @@
-﻿namespace PlexNotifierr.Api
+﻿namespace PlexNotifierr.Core.Config
 {
     public class PlexConfig
     {

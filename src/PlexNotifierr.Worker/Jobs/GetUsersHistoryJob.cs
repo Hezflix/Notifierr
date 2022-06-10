@@ -1,6 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Plex.ServerApi.Clients.Interfaces;
+using PlexNotifierr.Core.Config;
 using PlexNotifierr.Core.Models;
 using Quartz;
 
@@ -19,12 +21,12 @@ namespace PlexNotifierr.Worker.Jobs
 
         private readonly ILogger _logger;
 
-        public GetUsersHistoryJob(PlexNotifierrDbContext dbContext, IPlexServerClient plexServerClient, string url, string authToken, ILogger logger)
+        public GetUsersHistoryJob(PlexNotifierrDbContext dbContext, IPlexServerClient plexServerClient, IOptions<PlexConfig> plexConfig, ILogger<GetUsersHistoryJob> logger)
         {
             _dbContext = dbContext;
             _serverClient = plexServerClient;
-            _url = url;
-            _authToken = authToken;
+            _url = plexConfig.Value.ServerUrl;
+            _authToken = plexConfig.Value.AccessToken;
             _logger = logger;
         }
 
