@@ -73,7 +73,7 @@ namespace PlexNotifierr.Api.Extensions
             app.UseQuartzJob<GetUsersHistoryJob>(TriggerBuilder.Create()
                                                                .WithIdentity("HourlyTrigger")
                                                                .StartAt(DateBuilder.EvenSecondDate(DateTimeOffset.UtcNow.AddMinutes(5)))
-                                                               .WithSimpleSchedule(x => x.WithIntervalInSeconds(10).RepeatForever())
+                                                               .WithSimpleSchedule(x => x.WithIntervalInHours(1).RepeatForever())
                                                                .WithDescription("Hourly trigger for GetUsersHistoryJob"));
 
             app.UseQuartzJob<GetRecentlyAddedJob>(TriggerBuilder.Create()
