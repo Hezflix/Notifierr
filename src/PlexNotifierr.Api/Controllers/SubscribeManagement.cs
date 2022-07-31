@@ -17,32 +17,32 @@ namespace PlexNotifierr.Controllers
             _dbContext = dbContext;
         }
 
-        [HttpPost("/subscribe")]
+        [HttpPost("/subscription")]
         public async Task<IActionResult> Subscribe([FromBody] SubscribeRequest req)
         {
-            var user = _dbContext.Users.FirstOrDefault(user => user.DiscordId == req.discordId);
+            var user = _dbContext.Users.FirstOrDefault(user => user.DiscordId == req.DiscordId);
             if (user is null)
             {
-                if (req.plexName is null)
+                if (req.PlexName is null)
                 {
                     return NotFound();
                 }
-                user = _dbContext.Users.FirstOrDefault(user => user.PlexName == req.plexName);
+                user = _dbContext.Users.FirstOrDefault(user => user.PlexName == req.PlexName);
                 if (user is null)
                 {
                     return NotFound();
                 }
-                user.DiscordId = req.discordId;
+                user.DiscordId = req.DiscordId;
             }
             user.Active = true;
             await _dbContext.SaveChangesAsync();
             return Ok();
         }
 
-        [HttpPost("/unsubscribe")]
+        [HttpDelete("/subscription")]
         public async Task<IActionResult> Unsubscribe([FromBody] UnsubscribeRequest req)
         {
-            var user = _dbContext.Users.FirstOrDefault(user => user.DiscordId == req.discordId);
+            var user = _dbContext.Users.FirstOrDefault(user => user.DiscordId == req.DiscordId);
             if (user is null)
             {
                 return NotFound();
