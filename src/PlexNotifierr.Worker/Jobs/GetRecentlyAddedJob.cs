@@ -36,18 +36,22 @@ namespace PlexNotifierr.Worker.Jobs
                 var recentlyAddedEpisodes = await _serverClient.GetLibraryRecentlyAddedAsync(_authToken, _url, SearchType.Episode, library.Key, 0, 100);
                 if (recentlyAddedEpisodes?.Media is null) continue;
                 foreach (var recentlyAddedShow in recentlyAddedEpisodes.Media.GroupBy(x => x.GrandparentRatingKey)
-                                                                       .Select(x => new { RatingKey = x.Key, MaxOriginalityAvailableAt = x.MaxBy(x => x.OriginallyAvailableAt)?.OriginallyAvailableAt }))
+                                                                       .Select(x => new
+                                                                        {
+                                                                            RatingKey = x.Key,
+                                                                            LastEpisode = x.MaxBy(y => y.OriginallyAvailableAt),
+                                                                        }))
                 {
-                    if (!DateTime.TryParse(recentlyAddedShow.MaxOriginalityAvailableAt, out var originallyAvailableAt)
+                    if (!DateTime.TryParse(recentlyAddedShow.LastEpisode?.OriginallyAvailableAt, out var originallyAvailableAt)
                         || !int.TryParse(recentlyAddedShow.RatingKey, out var grandParentRatingKey)) continue;
                     var show = _dbContext.Medias.Include(x => x.Users).ThenInclude(y => y.User).FirstOrDefault(x => x.RatingKey == grandParentRatingKey);
                     if (show is null || originallyAvailableAt < show.LastNotified) continue;
-                    var discordIds = show.Users.Select(x => x.User.DiscordId);
+                    var discordIds = show.Users.Where(x => x.User.Active).Select(x => x.User.DiscordId);
                     var success = true;
                     foreach (var discordId in discordIds)
                     {
                         if (discordId is null) continue;
-                        var successfulSend = _notificationSender.TrySendMessage(discordId, show);
+                        var successfulSend = _notificationSender.TrySendMessage(discordId, show, recentlyAddedShow.LastEpisode);
                         if (success && !successfulSend) success = false;
                     }
                     if (success) show.LastNotified = DateTime.Now;
