@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Plex.ServerApi.PlexModels.Media;
 using PlexNotifierr.Core.Models;
 using RabbitMQ.Client;
 using System.Text;
@@ -30,7 +31,7 @@ namespace PlexNotifierr.Core.Messaging
             CreateConnection();
         }
 
-        public bool TrySendMessage(string discordId, Media media)
+        public bool TrySendMessage(string discordId, Media media, Metadata episode)
         {
             try
             {
@@ -44,7 +45,7 @@ namespace PlexNotifierr.Core.Messaging
                 };
                 var props = channel.CreateBasicProperties();
                 props.ContentType = "application/json; charset=UTF-8";
-                var messageJson = JsonSerializer.Serialize(new { discordId, media.Title, media.Summary, media.ThumbUrl }, options);
+                var messageJson = JsonSerializer.Serialize(new { discordId, media.Title, media.Summary, media.ThumbUrl, Season = episode.ParentIndex, Episode = episode.Index, EpisodeTitle = episode.Title }, options);
                 var messageBytes = Encoding.UTF8.GetBytes(messageJson);
                 channel.BasicPublish("", "discord", true, props, messageBytes);
                 _logger.LogInformation("Successful sent message to discord for user {0} on show {1}", discordId, media.Title);
