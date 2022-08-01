@@ -22,7 +22,8 @@ builder.Services.AddDbContext<PlexNotifierrDbContext>(options =>
         x => x.MigrationsAssembly("PlexNotifierr.Core"))
 );
 
-var configFile = new ConfigurationBuilder().AddXmlFile("app.config").AddJsonFile("appsettings.Development.json").Build();
+var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+var configFile = new ConfigurationBuilder().AddXmlFile("app.config").AddJsonFile($"appsettings.{environment}.json").AddEnvironmentVariables().Build();
 
 AddRabbitMqSender(builder.Services, configFile);
 
