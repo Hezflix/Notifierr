@@ -35,7 +35,7 @@ namespace PlexNotifierr.Worker.Jobs
             var users = _dbContext.Users.Include(u => u.Medias).Include(us => us.Medias).ToList();
             var mediasRatingKey = _dbContext.Medias.Select(m => m.RatingKey).ToHashSet();
 
-            const int limit = 100;
+            const int limit = 300;
             foreach (var user in users)
             {
                 var offset = user.HistoryPosition;
@@ -58,11 +58,12 @@ namespace PlexNotifierr.Worker.Jobs
                                 var grandParentMediaContainer = await _serverClient.GetMediaMetadataAsync(_authToken, _url, grandparentRatingKey);
                                 var grandParentMetadata = grandParentMediaContainer.Media.FirstOrDefault();
                                 if (grandParentMetadata is null) continue;
+                                var posters = await _serverClient.GetMediaPostersAsync(_authToken, _url, grandparentRatingKey);
                                 var media = new Media()
                                 {
                                     RatingKey = grandParentRatingKey,
                                     Title = grandParentMetadata.Title ?? "",
-                                    ThumbUrl = grandParentMetadata.Thumb ?? "",
+                                    ThumbUrl = posters.Media.FirstOrDefault(x => !x.Key.StartsWith("/"))?.Key ?? "",
                                     Summary = grandParentMetadata.Summary ?? "",
                                 };
                                 _dbContext.Add(media);
