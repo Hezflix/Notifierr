@@ -45,7 +45,7 @@ namespace PlexNotifierr.Core.Messaging
                 };
                 var props = channel.CreateBasicProperties();
                 props.ContentType = "application/json; charset=UTF-8";
-                var messageJson = JsonSerializer.Serialize(new { discordId, media.Title, media.Summary, media.ThumbUrl, Season = episode.ParentIndex, Episode = episode.Index, EpisodeTitle = episode.Title }, options);
+                var messageJson = JsonSerializer.Serialize(new { discordId, media.Title, episode.Summary, media.ThumbUrl, Season = episode.ParentIndex, Episode = episode.Index, EpisodeTitle = episode.Title, GrandParentRatingKey = episode.GrandparentKey }, options);
                 var messageBytes = Encoding.UTF8.GetBytes(messageJson);
                 channel.BasicPublish("", "discord", true, props, messageBytes);
                 _logger.LogInformation("Successful sent message to discord for user {0} on show {1}", discordId, media.Title);
