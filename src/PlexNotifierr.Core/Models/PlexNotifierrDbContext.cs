@@ -2,16 +2,18 @@
 
 namespace PlexNotifierr.Core.Models
 {
-    public class PlexNotifierrDbContext : DbContext
+    public sealed class PlexNotifierrDbContext : DbContext
     {
-        public PlexNotifierrDbContext() : base()
+        public PlexNotifierrDbContext()
         {
-            this.ChangeTracker.LazyLoadingEnabled = false;
+            Database.EnsureCreated();
+            ChangeTracker.LazyLoadingEnabled = false;
         }
 
         public PlexNotifierrDbContext(DbContextOptions<PlexNotifierrDbContext> options) : base(options)
         {
-            this.ChangeTracker.LazyLoadingEnabled = false;
+            Database.EnsureCreated();
+            ChangeTracker.LazyLoadingEnabled = false;
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -27,28 +29,10 @@ namespace PlexNotifierr.Core.Models
                 options.UseSqlite("PlexNotifierr.db");
         }
 
-        public DbSet<Media> Medias
-        {
-            get
-            {
-                return this.Set<Media>();
-            }
-        }
+        public DbSet<Media> Medias => Set<Media>();
 
-        public DbSet<User> Users
-        {
-            get
-            {
-                return this.Set<User>();
-            }
-        }
+        public DbSet<User> Users => Set<User>();
 
-        public DbSet<UserSubscription> UserSubscriptions
-        {
-            get
-            {
-                return this.Set<UserSubscription>();
-            }
-        }
+        public DbSet<UserSubscription> UserSubscriptions => Set<UserSubscription>();
     }
 }
