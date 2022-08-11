@@ -45,7 +45,9 @@ namespace PlexNotifierr.Worker.Jobs
                     if (!DateTime.TryParse(recentlyAddedShow.LastEpisode?.OriginallyAvailableAt, out var originallyAvailableAt)
                         || !int.TryParse(recentlyAddedShow.RatingKey, out var grandParentRatingKey)) continue;
                     var show = _dbContext.Medias.Include(x => x.Users).ThenInclude(y => y.User).FirstOrDefault(x => x.RatingKey == grandParentRatingKey);
-                    if (show is null || originallyAvailableAt < show.LastNotified) continue;
+                    var addedAt = new DateTime(1970, 1, 1, 0, 0, 0, 0).AddSeconds(recentlyAddedShow.LastEpisode.AddedAt).ToUniversalTime();
+                    var minDateShow = new DateTime(Math.Min(originallyAvailableAt.Ticks, addedAt.Ticks));
+                    if (show is null || minDateShow < show.LastNotified) continue;
                     var discordIds = show.Users.Where(x => x.User.Active).Select(x => x.User.DiscordId);
                     var success = true;
                     foreach (var discordId in discordIds)
