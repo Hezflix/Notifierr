@@ -7,15 +7,14 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Hangfire" Version="1.7.32" />
+    <PackageReference Include="Hangfire.Console.Extensions" Version="1.0.5" />
+    <PackageReference Include="Hangfire.Heartbeat" Version="0.5.1" />
+    <PackageReference Include="Hangfire.Storage.SQLite" Version="0.3.2" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="6.0.4">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Quartz" Version="3.4.0" />
-    <PackageReference Include="Quartz.Extensions.DependencyInjection" Version="3.4.0" />
-    <PackageReference Include="Quartz.Extensions.Hosting" Version="3.4.0" />
-    <PackageReference Include="SilkierQuartz" Version="5.0.356" />
-    <PackageReference Include="SilkierQuartz.Plugins.RecentHistory" Version="5.0.356" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.3.1" />
   </ItemGroup>
 

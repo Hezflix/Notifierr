@@ -1,42 +1,48 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Hangfire;
+using Hangfire.Console;
+using Hangfire.Console.Extensions;
+using Hangfire.Server;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Plex.ServerApi.Clients.Interfaces;
 using PlexNotifierr.Core.Config;
 using PlexNotifierr.Core.Models;
-using Quartz;
 
 namespace PlexNotifierr.Worker.Jobs
 {
-    [DisallowConcurrentExecution]
-    public class GetUsersHistoryJob : IJob
+    /// <summary>
+    /// A job to get history of all the user.
+    /// </summary>
+    public class GetUsersHistoryJob
     {
         private readonly PlexNotifierrDbContext _dbContext;
-
         private readonly IPlexServerClient _serverClient;
-
+        private readonly IProgressBarFactory _progressBarFactory;
         private readonly string _url;
-
         private readonly string _authToken;
-
         private readonly ILogger _logger;
 
-        public GetUsersHistoryJob(PlexNotifierrDbContext dbContext, IPlexServerClient plexServerClient, IOptions<PlexConfig> plexConfig, ILogger<GetUsersHistoryJob> logger)
+        public GetUsersHistoryJob(PlexNotifierrDbContext dbContext, IPlexServerClient plexServerClient, IProgressBarFactory progressBarFactory, IOptions<PlexConfig> plexConfig, ILogger<GetUsersHistoryJob> logger)
         {
             _dbContext = dbContext;
             _serverClient = plexServerClient;
+            _progressBarFactory = progressBarFactory;
             _url = plexConfig.Value.ServerUrl;
             _authToken = plexConfig.Value.AccessToken;
             _logger = logger;
         }
 
-        public async Task Execute(IJobExecutionContext context)
+        [JobDisplayName("GetUsersHistory")]
+        public async Task ExecuteAsync()
         {
-            var users = _dbContext.Users.Include(u => u.Medias).Include(us => us.Medias).ToList();
+            var users = await _dbContext.Users.Include(u => u.Medias).Include(us => us.Medias).ToListAsync();
             var mediasRatingKey = _dbContext.Medias.Select(m => m.RatingKey).ToHashSet();
 
             const int limit = 300;
-            foreach (var user in users)
+            _logger.LogInformation("{UsersCount} users to process", users.Count);
+            var progressBar = _progressBarFactory.Create();
+            foreach (var user in users.WithProgress(progressBar))
             {
                 var offset = user.HistoryPosition;
                 var isLastPage = false;
@@ -69,14 +75,16 @@ namespace PlexNotifierr.Worker.Jobs
                                 _dbContext.Add(media);
                                 mediasRatingKey.Add(grandParentRatingKey);
                                 _dbContext.UserSubscriptions.Add(new UserSubscription() { Media = media, User = user });
+                                _logger.LogInformation("New media {MediaTitle} added", media.Title);
                             }
                             else
                             {
                                 var userSubscription = user.Medias.FirstOrDefault(x => x.RatingKey == grandParentRatingKey);
                                 if (userSubscription is not null) continue;
-                                var media = _dbContext.Medias.Include(m => m.Users).FirstOrDefault(x => x.RatingKey == grandParentRatingKey);
+                                var media = _dbContext.Medias.FirstOrDefault(x => x.RatingKey == grandParentRatingKey);
                                 if (media is null) continue;
                                 _dbContext.UserSubscriptions.Add(new UserSubscription() { Media = media, User = user });
+                                _logger.LogInformation("New subscription from {UserPlexName} to {MediaTitle}", user.PlexName, media.Title);
                             }
                         }
                         user.HistoryPosition += history.Size;

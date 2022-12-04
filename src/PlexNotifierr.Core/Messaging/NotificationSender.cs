@@ -48,12 +48,12 @@ namespace PlexNotifierr.Core.Messaging
                 var messageJson = JsonSerializer.Serialize(new { discordId, media.Title, episode.Summary, media.ThumbUrl, Season = episode.ParentIndex, Episode = episode.Index, EpisodeTitle = episode.Title, GrandParentRatingKey = episode.GrandparentKey }, options);
                 var messageBytes = Encoding.UTF8.GetBytes(messageJson);
                 channel.BasicPublish("", "discord", true, props, messageBytes);
-                _logger.LogInformation("Successful sent message to discord for user {0} on show {1}", discordId, media.Title);
+                _logger.LogDebug("Message sent successfully to RBMQ for user {0} on show {1}", discordId, media.Title);
                 return true;
             }
             catch (Exception e)
             {
-                _logger.LogError($"Error while publishing message to {discordId} on show {media.Title} {e.Message}");
+                _logger.LogError("Error while publishing message to {DiscordId} on show {MediaTitle} {EMessage}", discordId, media.Title, e.Message);
                 return false;
             }
         }
