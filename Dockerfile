@@ -4,9 +4,9 @@ WORKDIR /app
 # Copy everything
 COPY . ./
 # Restore as distinct layers
-RUN dotnet restore
+RUN dotnet restore --use-current-runtime
 # Build and publish a release
-RUN dotnet publish -c Release -o out
+RUN dotnet publish -c Release -o out --use-current-runtime --self-contained false --no-restore
 
 # Build runtime image
 FROM mcr.microsoft.com/dotnet/aspnet:7.0
