@@ -11,7 +11,7 @@
     <PackageReference Include="Hangfire.Console.Extensions" Version="1.1.0" />
     <PackageReference Include="Hangfire.Heartbeat" Version="0.6.0" />
     <PackageReference Include="Hangfire.Storage.SQLite" Version="0.3.4" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="7.0.13">
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="7.0.19">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
