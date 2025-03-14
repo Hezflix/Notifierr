@@ -7,20 +7,20 @@ using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 
-namespace PlexNotifierr.Core.Messaging
-{
-    public class NotificationSender : INotificationSender
-    {
-        private readonly string _hostName;
-        private readonly string _userName;
-        private readonly string _password;
-        private readonly int _port;
-        private readonly string _virtualHost;
-        private IConnection? _connection;
-        private readonly ILogger _logger;
+namespace PlexNotifierr.Core.Messaging;
 
-        public NotificationSender(IOptions<RabbitMqConfig> options, ILogger<NotificationSender> logger)
-        {
+public class NotificationSender : INotificationSender
+{
+    private readonly string _hostName;
+    private readonly string _userName;
+    private readonly string _password;
+    private readonly int _port;
+    private readonly string _virtualHost;
+    private IConnection? _connection;
+    private readonly ILogger _logger;
+
+    public NotificationSender(IOptions<RabbitMqConfig> options, ILogger<NotificationSender> logger)
+    {
             _hostName = options.Value.HostName;
             _userName = options.Value.UserName;
             _password = options.Value.Password;
@@ -31,8 +31,8 @@ namespace PlexNotifierr.Core.Messaging
             CreateConnection();
         }
 
-        public bool TrySendMessage(string discordId, Media media, Metadata episode)
-        {
+    public bool TrySendMessage(string discordId, Media media, Metadata episode)
+    {
             try
             {
                 if (!ConnectionExists()) return false;
@@ -58,8 +58,8 @@ namespace PlexNotifierr.Core.Messaging
             }
         }
 
-        private void CreateConnection()
-        {
+    private void CreateConnection()
+    {
             try
             {
                 var factory = new ConnectionFactory()
@@ -79,11 +79,10 @@ namespace PlexNotifierr.Core.Messaging
             }
         }
 
-        private bool ConnectionExists()
-        {
+    private bool ConnectionExists()
+    {
             if (_connection != null) return true;
             CreateConnection();
             return _connection != null;
         }
-    }
 }
