@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using PlexNotifierr.Core.Context;
 using PlexNotifierr.Core.Models;
 
 #nullable disable

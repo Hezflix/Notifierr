@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using PlexNotifierr.Core.Models;
 
-namespace PlexNotifierr.Core.Models;
+namespace PlexNotifierr.Core.Context;
 
 public sealed class PlexNotifierrDbContext : DbContext
 {

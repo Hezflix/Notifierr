@@ -1,12 +1,12 @@
 ﻿using Hangfire;
 using Hangfire.Console;
 using Hangfire.Console.Extensions;
-using Hangfire.Server;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Plex.ServerApi.Clients.Interfaces;
 using PlexNotifierr.Core.Config;
+using PlexNotifierr.Core.Context;
 using PlexNotifierr.Core.Models;
 
 namespace PlexNotifierr.Worker.Jobs;

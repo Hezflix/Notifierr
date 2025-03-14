@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
-using PlexNotifierr.Core.Models;
 using PlexNotifierr.Api.Models;
+using PlexNotifierr.Core.Context;
 
 namespace PlexNotifierr.Controllers;
 

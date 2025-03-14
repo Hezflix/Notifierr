@@ -4,6 +4,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>PlexNotifierr.Api</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
@@ -19,6 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\PlexNotifierr.DiscordBot\PlexNotifierr.DiscordBot.csproj" />
     <ProjectReference Include="..\PlexNotifierr.Core\PlexNotifierr.Core.csproj" />
     <ProjectReference Include="..\PlexNotifierr.Worker\PlexNotifierr.Worker.csproj" />
   </ItemGroup>

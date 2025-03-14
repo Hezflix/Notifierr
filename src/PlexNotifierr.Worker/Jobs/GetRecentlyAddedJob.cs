@@ -1,15 +1,13 @@
 using Hangfire;
 using Hangfire.Console;
 using Hangfire.Console.Extensions;
-using Hangfire.Server;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Plex.ServerApi.Clients.Interfaces;
 using Plex.ServerApi.Enums;
 using PlexNotifierr.Core.Config;
-using PlexNotifierr.Core.Messaging;
-using PlexNotifierr.Core.Models;
+using PlexNotifierr.Core.Context;
 
 namespace PlexNotifierr.Worker.Jobs;
 
@@ -20,18 +18,16 @@ public class GetRecentlyAddedJob
 {
     private readonly PlexNotifierrDbContext _dbContext;
     private readonly IPlexServerClient _serverClient;
-    private readonly INotificationSender _notificationSender;
     private readonly IProgressBarFactory _progressBarFactory;
     private readonly string _url;
     private readonly string _authToken;
     private readonly ILogger _logger;
 
 
-    public GetRecentlyAddedJob(PlexNotifierrDbContext dbContext, IPlexServerClient plexServerClient, INotificationSender notificationSender, IProgressBarFactory progressBarFactory, IOptions<PlexConfig> plexConfig, ILogger<GetUsersJob> logger)
+    public GetRecentlyAddedJob(PlexNotifierrDbContext dbContext, IPlexServerClient plexServerClient, IProgressBarFactory progressBarFactory, IOptions<PlexConfig> plexConfig, ILogger<GetRecentlyAddedJob> logger)
     {
         _dbContext = dbContext;
         _serverClient = plexServerClient;
-        _notificationSender = notificationSender;
         _progressBarFactory = progressBarFactory;
         _url = plexConfig.Value.ServerUrl;
         _authToken = plexConfig.Value.AccessToken;
@@ -68,8 +64,8 @@ public class GetRecentlyAddedJob
                 {
                     if (user.DiscordId is null) continue;
                     _logger.LogInformation("Notification send for user {UserPlexName} on show {ShowTitle}", user.PlexName, show.Title);
-                    var successfulSend = _notificationSender.TrySendMessage(user.DiscordId, show, recentlyAddedShow.LastEpisode);
-                    if (success && !successfulSend) success = false;
+                    // var successfulSend = _notificationSender.TrySendMessage(user.DiscordId, show, recentlyAddedShow.LastEpisode);
+                    // if (success && !successfulSend) success = false;
                 }
                 if (success) show.LastNotified = DateTime.Now;
             }

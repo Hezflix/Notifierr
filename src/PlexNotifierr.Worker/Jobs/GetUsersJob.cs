@@ -1,7 +1,6 @@
 ﻿using Hangfire;
 using Hangfire.Console;
 using Hangfire.Console.Extensions;
-using Hangfire.Server;
 using Microsoft.EntityFrameworkCore;
 using Plex.Library.ApiModels.Accounts;
 using PlexNotifierr.Core.Models;
@@ -9,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Plex.Api.Factories;
 using PlexNotifierr.Core.Config;
+using PlexNotifierr.Core.Context;
 
 namespace PlexNotifierr.Worker.Jobs;
 

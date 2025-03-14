@@ -14,4 +14,4 @@ ENV ASPNETCORE_ENVIRONMENT=Production
 ENV ASPNETCORE_URLS=http://+:31099
 WORKDIR /app
 COPY --from=build-env /app/out .
-ENTRYPOINT ["dotnet", "PlexNotifierr.Api.dll"]
+ENTRYPOINT ["dotnet", "PlexNotifierr.dll"]

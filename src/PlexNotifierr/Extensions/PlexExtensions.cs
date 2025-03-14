@@ -12,7 +12,7 @@ namespace PlexNotifierr.Api.Extensions;
 
 public static class PlexExtensions
 {
-    public static void AddPlexApi(IServiceCollection services, IConfigurationRoot configuration)
+    public static void AddPlexApi(this IServiceCollection services, IConfigurationRoot configuration)
     {
         _ = services.Configure<PlexConfig>(configuration.GetSection("Plex"));
         var plexConfig = configuration.GetSection("Plex").Get<PlexConfig>();
