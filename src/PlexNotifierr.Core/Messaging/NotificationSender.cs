@@ -7,83 +7,97 @@ using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 
-namespace PlexNotifierr.Core.Messaging
+namespace PlexNotifierr.Core.Messaging;
+
+public sealed class NotificationSender : INotificationSender, IAsyncDisposable
 {
-    public class NotificationSender : INotificationSender
+    private readonly RabbitMqConfig _config;
+    private readonly ILogger _logger;
+    private readonly SemaphoreSlim _connectionLock = new(1, 1);
+    private IConnection? _connection;
+
+    public NotificationSender(IOptions<RabbitMqConfig> options, ILogger<NotificationSender> logger)
     {
-        private readonly string _hostName;
-        private readonly string _userName;
-        private readonly string _password;
-        private readonly int _port;
-        private readonly string _virtualHost;
-        private IConnection? _connection;
-        private readonly ILogger _logger;
+        _config = options.Value;
+        _logger = logger;
+    }
 
-        public NotificationSender(IOptions<RabbitMqConfig> options, ILogger<NotificationSender> logger)
+    public async Task<bool> TrySendMessageAsync(string discordId, Media media, Metadata episode, CancellationToken cancellationToken = default)
+    {
+        try
         {
-            _hostName = options.Value.HostName;
-            _userName = options.Value.UserName;
-            _password = options.Value.Password;
-            _port = options.Value.Port;
-            _virtualHost = options.Value.VirtualHost;
-            _logger = logger;
+            var connection = await EnsureConnectionAsync(cancellationToken);
+            if (connection is null) return false;
 
-            CreateConnection();
+            await using var channel = await connection.CreateChannelAsync(cancellationToken: cancellationToken);
+            await channel.QueueDeclareAsync("discord", durable: true, exclusive: false, autoDelete: false, arguments: null, cancellationToken: cancellationToken);
+
+            var serializerOptions = new JsonSerializerOptions
+            {
+                Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+                WriteIndented = true
+            };
+            var props = new BasicProperties
+            {
+                ContentType = "application/json; charset=UTF-8"
+            };
+            var messageJson = JsonSerializer.Serialize(new { discordId, media.Title, episode.Summary, media.ThumbUrl, Season = episode.ParentIndex, Episode = episode.Index, EpisodeTitle = episode.Title, GrandParentRatingKey = episode.GrandparentKey }, serializerOptions);
+            var messageBytes = Encoding.UTF8.GetBytes(messageJson);
+
+            await channel.BasicPublishAsync(exchange: "", routingKey: "discord", mandatory: true, basicProperties: props, body: messageBytes, cancellationToken: cancellationToken);
+            _logger.LogDebug("Message sent successfully to RBMQ for user {DiscordId} on show {MediaTitle}", discordId, media.Title);
+            return true;
         }
-
-        public bool TrySendMessage(string discordId, Media media, Metadata episode)
+        catch (Exception e)
         {
-            try
-            {
-                if (!ConnectionExists()) return false;
-                using var channel = _connection!.CreateModel();
-                channel.QueueDeclare("discord", true, false, false, null);
-                var options = new JsonSerializerOptions
-                {
-                    Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
-                    WriteIndented = true
-                };
-                var props = channel.CreateBasicProperties();
-                props.ContentType = "application/json; charset=UTF-8";
-                var messageJson = JsonSerializer.Serialize(new { discordId, media.Title, episode.Summary, media.ThumbUrl, Season = episode.ParentIndex, Episode = episode.Index, EpisodeTitle = episode.Title, GrandParentRatingKey = episode.GrandparentKey }, options);
-                var messageBytes = Encoding.UTF8.GetBytes(messageJson);
-                channel.BasicPublish("", "discord", true, props, messageBytes);
-                _logger.LogDebug("Message sent successfully to RBMQ for user {0} on show {1}", discordId, media.Title);
-                return true;
-            }
-            catch (Exception e)
-            {
-                _logger.LogError("Error while publishing message to {DiscordId} on show {MediaTitle} {EMessage}", discordId, media.Title, e.Message);
-                return false;
-            }
+            _logger.LogError(e, "Error while publishing message to {DiscordId} on show {MediaTitle}", discordId, media.Title);
+            return false;
         }
+    }
 
-        private void CreateConnection()
+    public async ValueTask DisposeAsync()
+    {
+        if (_connection is not null)
         {
-            try
-            {
-                var factory = new ConnectionFactory()
-                {
-                    HostName = _hostName,
-                    UserName = _userName,
-                    Password = _password,
-                    Port = _port,
-                    VirtualHost = _virtualHost
-                };
-                _connection = factory.CreateConnection();
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(e);
-                throw;
-            }
+            await _connection.DisposeAsync();
+            _connection = null;
         }
+        _connectionLock.Dispose();
+    }
 
-        private bool ConnectionExists()
+    private async Task<IConnection?> EnsureConnectionAsync(CancellationToken cancellationToken)
+    {
+        if (_connection is { IsOpen: true }) return _connection;
+
+        await _connectionLock.WaitAsync(cancellationToken);
+        try
         {
-            if (_connection != null) return true;
-            CreateConnection();
-            return _connection != null;
+            if (_connection is { IsOpen: true }) return _connection;
+            if (_connection is not null)
+            {
+                await _connection.DisposeAsync();
+                _connection = null;
+            }
+
+            var factory = new ConnectionFactory
+            {
+                HostName = _config.HostName,
+                UserName = _config.UserName,
+                Password = _config.Password,
+                Port = _config.Port,
+                VirtualHost = _config.VirtualHost
+            };
+            _connection = await factory.CreateConnectionAsync(cancellationToken);
+            return _connection;
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Failed to open RabbitMQ connection to {HostName}:{Port}", _config.HostName, _config.Port);
+            return null;
+        }
+        finally
+        {
+            _connectionLock.Release();
         }
     }
 }
