@@ -1,5 +1,6 @@
 using Hangfire;
 using Hangfire.Console;
+using Hangfire.Console.Extensions;
 using Hangfire.Server;
 using Microsoft.EntityFrameworkCore;
 using Plex.Library.ApiModels.Accounts;
