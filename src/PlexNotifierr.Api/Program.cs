@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using PlexNotifierr.Core.Models;
+using Scalar.AspNetCore;
 using Serilog;
 using static PlexNotifierr.Api.Extensions.HangfireExtensions;
 using static PlexNotifierr.Api.Extensions.PlexExtensions;
@@ -31,16 +32,14 @@ AddHangfire(builder.Services, configFile);
 AddHangfireServer(builder.Services, configFile);
 AddHangfireConsoleExtensions(builder.Services);
 
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddOpenApi();
 
 var app = builder.Build();
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    app.MapOpenApi();
+    app.MapScalarApiReference();
 }
 
 app.UseRouting();

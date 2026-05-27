@@ -1,7 +1,6 @@
-namespace PlexNotifierr.Api.Models
+namespace PlexNotifierr.Api.Models;
+
+public class UnsubscribeRequest
 {
-    public class UnsubscribeRequest
-    {
-        public string DiscordId { get; set; } = "";
-    }
+    public string DiscordId { get; set; } = "";
 }
