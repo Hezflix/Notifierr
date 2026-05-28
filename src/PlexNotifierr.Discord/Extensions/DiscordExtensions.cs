@@ -31,6 +31,7 @@ public static class DiscordExtensions
 
         services.AddSingleton<ILocalHandler, LocalHandler>();
         services.AddSingleton<ICommandHandler, CommandHandler>();
+        services.AddSingleton<IDiscordUserGateway, DiscordShardedClientUserGateway>();
         services.AddSingleton<INotificationSender, DiscordNotificationSender>();
         services.AddHostedService<DiscordBotHostedService>();
 

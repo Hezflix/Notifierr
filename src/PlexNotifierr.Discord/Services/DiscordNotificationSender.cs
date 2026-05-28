@@ -1,5 +1,4 @@
 using Discord;
-using Discord.WebSocket;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Plex.ServerApi.PlexModels.Media;
@@ -11,19 +10,19 @@ namespace PlexNotifierr.Discord.Services;
 
 public class DiscordNotificationSender : INotificationSender
 {
-    private readonly DiscordShardedClient _client;
+    private readonly IDiscordUserGateway _userGateway;
     private readonly ILocalHandler _localHandler;
     private readonly ILogger<DiscordNotificationSender> _logger;
     private readonly string _plexServerIdentifier;
     private readonly string _plexServerHostName;
 
     public DiscordNotificationSender(
-        DiscordShardedClient client,
+        IDiscordUserGateway userGateway,
         ILocalHandler localHandler,
         IOptions<DiscordBotConfig> options,
         ILogger<DiscordNotificationSender> logger)
     {
-        _client = client;
+        _userGateway = userGateway;
         _localHandler = localHandler;
         _logger = logger;
         _plexServerIdentifier = options.Value.PlexServerIdentifier;
@@ -40,7 +39,7 @@ public class DiscordNotificationSender : INotificationSender
 
         try
         {
-            var user = await _client.Rest.GetUserAsync(userId);
+            var user = await _userGateway.GetUserAsync(userId);
             if (user is null)
             {
                 _logger.LogWarning("Discord user {DiscordId} not found", discordId);
