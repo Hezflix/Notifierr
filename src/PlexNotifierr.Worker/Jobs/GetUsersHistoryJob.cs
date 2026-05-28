@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Plex.ServerApi.Clients.Interfaces;
+using Plex.ServerApi.PlexModels.Server.History;
 using PlexNotifierr.Core.Config;
 using PlexNotifierr.Core.Models;
 
@@ -33,7 +34,7 @@ public class GetUsersHistoryJob
     [JobDisplayName("GetUsersHistory")]
     public async Task ExecuteAsync()
     {
-        var users = await _dbContext.Users.Include(u => u.Medias).Include(us => us.Medias).ToListAsync();
+        var users = await _dbContext.Users.Include(u => u.Medias).ToListAsync();
         var mediasRatingKey = _dbContext.Medias.Select(m => m.RatingKey).ToHashSet();
 
         const int limit = 300;
@@ -45,17 +46,31 @@ public class GetUsersHistoryJob
             var isLastPage = false;
             while (!isLastPage)
             {
+                HistoryMediaContainer history;
                 try
                 {
-                    var history = await _serverClient.GetPlayHistory(_authToken, _url, offset, limit, accountId: user.PlexId);
-                    isLastPage = history.Size < limit;
-                    offset += limit;
-                    if (history.HistoryMetadata is null) continue;
-                    foreach (var historyMetadata in history.HistoryMetadata.Where(historyMetadata => historyMetadata?.Type == "episode"))
+                    history = await _serverClient.GetPlayHistory(_authToken, _url, offset, limit, accountId: user.PlexId);
+                }
+                catch (Exception e)
+                {
+                    // A failed page fetch must stop this user: retrying the same offset in-loop would
+                    // spin forever against a down Plex server. The cursor is left untouched so the
+                    // next scheduled run resumes from where we got to.
+                    _logger.LogError(e, "Failed to fetch play history for {UserPlexName} at offset {Offset}; stopping this user", user.PlexName, offset);
+                    break;
+                }
+
+                isLastPage = history.Size < limit;
+                offset += limit;
+                if (history.HistoryMetadata is null) continue;
+
+                foreach (var historyMetadata in history.HistoryMetadata.Where(historyMetadata => historyMetadata?.Type == "episode"))
+                {
+                    var grandparentKey = historyMetadata.GrandParentKey;
+                    var grandparentRatingKey = grandparentKey?.Split('/').LastOrDefault() ?? string.Empty;
+                    if (!int.TryParse(grandparentRatingKey, out var grandParentRatingKey)) continue;
+                    try
                     {
-                        var grandparentKey = historyMetadata.GrandParentKey;
-                        var grandparentRatingKey = grandparentKey?.Split('/').LastOrDefault() ?? string.Empty;
-                        if (!int.TryParse(grandparentRatingKey, out var grandParentRatingKey)) continue;
                         if (!mediasRatingKey.Contains(grandParentRatingKey))
                         {
                             var grandParentMediaContainer = await _serverClient.GetMediaMetadataAsync(_authToken, _url, grandparentRatingKey);
@@ -84,12 +99,23 @@ public class GetUsersHistoryJob
                             _logger.LogInformation("New subscription from {UserPlexName} to {MediaTitle}", user.PlexName, media.Title);
                         }
                     }
+                    catch (Exception e)
+                    {
+                        // One unresolvable show (e.g. removed from Plex) must not abort the whole page;
+                        // skip it so the rest of the user's history still gets processed.
+                        _logger.LogError(e, "Failed to process show {RatingKey} for {UserPlexName}; skipping", grandParentRatingKey, user.PlexName);
+                    }
+                }
+
+                try
+                {
                     user.HistoryPosition += history.Size;
                     _ = await _dbContext.SaveChangesAsync();
                 }
                 catch (Exception e)
                 {
-                    _logger.LogError(e.Message);
+                    _logger.LogError(e, "Failed to save play history progress for {UserPlexName} at offset {Offset}; stopping this user", user.PlexName, offset);
+                    break;
                 }
             }
         }

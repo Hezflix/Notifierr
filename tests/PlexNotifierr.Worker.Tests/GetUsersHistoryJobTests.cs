@@ -128,6 +128,50 @@ public sealed class GetUsersHistoryJobTests : IDisposable
     }
 
     [Fact]
+    public async Task ExecuteAsync_StopsUser_WhenHistoryFetchFails_WithoutRetryingSameOffset()
+    {
+        SeedUser();
+        // First page fetch fails; a terminal empty page is queued so a regression to the old
+        // swallow-and-retry behavior surfaces as a second call instead of hanging the test.
+        _serverClient.GetPlayHistory(
+                Arg.Any<string>(), Arg.Any<string>(), Arg.Any<int>(), Arg.Any<int>(),
+                Arg.Any<DateTime?>(), Arg.Any<int?>())
+            .Returns(
+                _ => Task.FromException<HistoryMediaContainer>(new InvalidOperationException("plex down")),
+                _ => Task.FromResult(new HistoryMediaContainer { Size = 0, HistoryMetadata = [] }));
+
+        await using (var context = _db.CreateContext())
+            await CreateJob(context).ExecuteAsync();
+
+        await _serverClient.Received(1).GetPlayHistory(
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<int>(), Arg.Any<int>(),
+            Arg.Any<DateTime?>(), Arg.Any<int?>());
+        Snapshot().historyPosition.ShouldBe(0); // cursor left untouched for the next run
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_SkipsUnresolvableShow_ButProcessesTheRestAndAdvancesPosition()
+    {
+        SeedUser();
+        GivenHistoryPage(Episode(200), Episode(300));
+        // Show 200 can no longer be resolved on Plex; show 300 is fine.
+        _serverClient.GetMediaMetadataAsync(Arg.Any<string>(), Arg.Any<string>(), "200")
+            .Returns(Task.FromException<MediaContainer>(new InvalidOperationException("removed from plex")));
+        _serverClient.GetMediaMetadataAsync(Arg.Any<string>(), Arg.Any<string>(), "300")
+            .Returns(new MediaContainer { Media = [new Metadata { Title = "Show 300", Summary = "" }] });
+        GivenShowPoster("http://poster.jpg");
+
+        await using (var context = _db.CreateContext())
+            await CreateJob(context).ExecuteAsync();
+
+        await using var verify = _db.CreateContext();
+        verify.Medias.Count().ShouldBe(1);
+        verify.Medias.Single().RatingKey.ShouldBe(300);
+        verify.UserSubscriptions.Count().ShouldBe(1);
+        verify.Users.Single(u => u.PlexId == UserPlexId).HistoryPosition.ShouldBe(2); // whole page processed
+    }
+
+    [Fact]
     public async Task ExecuteAsync_IgnoresNonEpisodeHistory_ButStillAdvancesPosition()
     {
         SeedUser();
