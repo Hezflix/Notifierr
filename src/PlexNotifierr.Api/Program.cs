@@ -1,30 +1,30 @@
 using Microsoft.EntityFrameworkCore;
 using PlexNotifierr.Core.Models;
-using Scalar.AspNetCore;
+using PlexNotifierr.Core.Services;
+using PlexNotifierr.Discord.Extensions;
 using Serilog;
 using static PlexNotifierr.Api.Extensions.HangfireExtensions;
 using static PlexNotifierr.Api.Extensions.PlexExtensions;
-using static PlexNotifierr.Api.Extensions.PublicationExtensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
 var connectionString = builder.Configuration.GetConnectionString("PlexNotifierr");
 
-
-// Add services to the container.
 builder.Host.UseSerilog((hostContext, logging) => _ = logging.ReadFrom.Configuration(hostContext.Configuration));
 
-builder.Services.AddControllers();
-builder.Services.AddDbContext<PlexNotifierrDbContext>(options =>
+builder.Services.AddDbContextFactory<PlexNotifierrDbContext>(options =>
     options.UseSqlite(
         connectionString,
-        x => x.MigrationsAssembly("PlexNotifierr.Core"))
-);
+        x => x.MigrationsAssembly("PlexNotifierr.Core")));
+builder.Services.AddScoped(sp =>
+    sp.GetRequiredService<IDbContextFactory<PlexNotifierrDbContext>>().CreateDbContext());
+
+builder.Services.AddSingleton<ISubscriptionService, SubscriptionService>();
 
 var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
-var configFile = new ConfigurationBuilder().AddJsonFile($"appsettings.json").AddJsonFile($"appsettings.{environment}.json").AddEnvironmentVariables().Build();
+var configFile = new ConfigurationBuilder().AddJsonFile("appsettings.json").AddJsonFile($"appsettings.{environment}.json").AddEnvironmentVariables().Build();
 
-AddRabbitMqSender(builder.Services, configFile);
+builder.Services.AddDiscordBot(configFile);
 
 AddPlexApi(builder.Services, configFile);
 
@@ -32,22 +32,10 @@ AddHangfire(builder.Services, configFile);
 AddHangfireServer(builder.Services, configFile);
 AddHangfireConsoleExtensions(builder.Services);
 
-builder.Services.AddOpenApi();
-
 var app = builder.Build();
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-    app.MapScalarApiReference();
-}
 
 app.UseRouting();
-app.UseHttpsRedirection();
 
-app.UseAuthorization();
-
-app.MapControllers();
 ConfigureHangfireDashboard(app);
 ConfigureRecurringJob();
 

@@ -1,0 +1,12 @@
+{
+  "HelpTitle": "Hezping envoie une notification quand un nouvel épisode d'une série que tu regardes sort sur Hezflix",
+  "SubscribeHelp": "Permet de s'inscrire pour recevoir les notifications dès qu'un épisode sort",
+  "UnsubscribeHelp": "Permet de te désinscrire et de ne plus recevoir les notifications",
+  "NotificationTitle": "📺 {Title} - Saison {Season} · Episode {Episode} - {EpisodeTitle} 👈 vient d'être ajouté à Plex !",
+  "NotificationCta": "Lien vers l'épisode",
+  "SubscribeNoPlex": "Il faut mettre un nom d'utilisateur Plex pour pouvoir souscrire aux notifications",
+  "SubscribeSuccess": "Tu as souscrit aux notifications",
+  "SubscribeError": "Il y a eu un problème pendant ta souscription aux notifications",
+  "UnsubscribeSuccess": "Tu es maintenant désinscrit aux notifications",
+  "UnsubscribeError": "Il y a eu un problème pendant ta désinscription"
+}
